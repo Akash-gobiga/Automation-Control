@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automation Control</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Automation Control</h1>
+
+    <div class="automation-buttons">
+        <div class="automation-control">
+            <label class="switch">
+                <input type="checkbox" onchange="toggleLED('Led-1', this.checked)">
+                <span class="slider"></span>
+            </label>
+            <span>LED 1</span>
+        </div>
+        <div class="automation-control">
+            <label class="switch">
+                <input type="checkbox" onchange="toggleLED('Led-2', this.checked)">
+                <span class="slider"></span>
+            </label>
+            <span>LED 2</span>
+        </div>
+        <div class="automation-control">
+            <label class="switch">
+                <input type="checkbox" onchange="toggleLED('Led-3', this.checked)">
+                <span class="slider"></span>
+            </label>
+            <span>LED 3</span>
+        </div>
+        <div class="automation-control">
+            <label class="switch">
+                <input type="checkbox" onchange="toggleLED('Led-4', this.checked)">
+                <span class="slider"></span>
+            </label>
+            <span>Bell</span>
+        </div>
+        <div class="automation-control">
+            <label class="switch">
+                <input type="checkbox" id="led1-3" onchange="toggleAllLEDs(this.checked)">
+                <span class="slider"></span>
+            </label>
+            <span>All lights</span>
+        </div>
+    </div>
+
+    <button id="start-listening" onclick="startListening()">Start Listening</button>
+    <div id="status-message"></div>
+
+    <script src="script.js" type="module"></script>
+</body>
+</html>
