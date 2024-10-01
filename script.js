@@ -20,7 +20,7 @@ const database = getDatabase(app);
 // Function to control LEDs and update location and lastUpdated
 window.toggleLED = function (ledId, isChecked) {
     const ledPath = `Automation/LEDs/${ledId}/state`;
-    const currentTime = new Date().toISOString();  // Capture the current time for lastUpdated
+   
     const locations = {
         "LED-1": "Main Hall",
         "LED-2": "Corridor",
