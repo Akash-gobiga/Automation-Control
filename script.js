@@ -20,20 +20,22 @@ const database = getDatabase(app);
 // Function to control LEDs and update location and lastUpdated
 window.toggleLED = function (ledId, isChecked) {
     const ledPath = `Automation/LEDs/${ledId}/state`;
-    
+    const currentTime = new Date().toLocaleString();  // Capture the current time for lastUpdated
+    const locations = {
+        "LED-1": "Main Hall",
+        "LED-2": "Corridor",
+        "LED-3": "Gym Area",
+        "LED-4": "Library"
+    };
+
     // Set LED state, location, and lastUpdated in the database
     set(ref(database, `Automation/LEDs/${ledId}`), {
         state: isChecked ? 1 : 0,
-        lastUpdated: "",  // Remove this line to not update lastUpdated
-        location: {
-            "LED-1": "Main Hall",
-            "LED-2": "Corridor",
-            "LED-3": "Gym Area",
-            "LED-4": "Library"
-        }[ledId] // Store the location corresponding to the LED
+        lastUpdated: currentTime,
+        location: locations[ledId] // Store the location corresponding to the LED
     }).then(() => {
         const ledName = ledId === 'LED-4' ? "Bell" : ledId.replace("-", " ");
-        console.log(`${ledName} turned ${isChecked ? "ON" : "OFF"}`);
+        console.log(`${ledName} turned ${isChecked ? "ON" : "OFF"} at ${currentTime}`);
 
         // Update the "All Lights" button state only for the first three LEDs
         if (ledId !== 'LED-4') {
@@ -71,7 +73,7 @@ function updateAllLightsButtonState() {
     });
 }
 
-// Listen for changes in Firebase and update the UI with the location
+// Listen for changes in Firebase and update the UI with the location and lastUpdated
 onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
     const leds = snapshot.val();
 
@@ -81,8 +83,8 @@ onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
             toggleSwitch.checked = leds[ledId].state === 1;
         }
 
-        // Display the location in the console (or the UI)
-        console.log(`${ledId} Location: ${leds[ledId].location}`);
+        // Display the lastUpdated and location in the console (or the UI)
+        console.log(`${ledId} last updated at: ${leds[ledId].lastUpdated}, Location: ${leds[ledId].location}`);
     }
 
     // Update the "All Lights" button state
