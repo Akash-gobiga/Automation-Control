@@ -4,13 +4,13 @@ import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebase
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAbLlLHRNwksic6G7QtCnKqYtVV_KDpqWc",
-    authDomain: "iwms-v2.firebaseapp.com",
-    databaseURL: "https://iwms-v2-default-rtdb.firebaseio.com",
-    projectId: "iwms-v2",
-    storageBucket: "iwms-v2.appspot.com",
-    messagingSenderId: "170990257252",
-    appId: "1:170990257252:web:ac7db0672e97972ba7cb71"
+    apiKey: "AIzaSyDAzbmHjRnnn3ebOn7_ijdoy2t2B9vadL4",
+    authDomain: "eco-smart-wms.firebaseapp.com",
+    databaseURL: "https://eco-smart-wms-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "eco-smart-wms",
+    storageBucket: "eco-smart-wms.appspot.com",
+    messagingSenderId: "230677104278",
+    appId: "1:230677104278:web:4a9f2b1757c98b0e1da4b7"
 };
 
 // Initialize Firebase
@@ -21,10 +21,20 @@ let isProcessingCommand = false; // Flag to prevent processing multiple commands
 
 // Function to control LEDs and Bell
 window.toggleLED = function (ledId, isChecked) {
-    set(ref(database, `Automation/${ledId}`), isChecked ? 1 : 0)
+    const ledPath = `Automation/LEDs/${ledId}/state`;
+    const currentTime = new Date().toISOString();
+    
+    set(ref(database, ledPath), isChecked ? 1 : 0)
         .then(() => {
-            const ledName = ledId === 'Led-4' ? "Bell" : ledId.replace("-", " ");
+            // Update last updated timestamp
+            set(ref(database, `Automation/LEDs/${ledId}/lastUpdated`), currentTime);
+            const ledName = ledId === 'LED-4' ? "Bell" : ledId.replace("-", " ");
             console.log(`${ledName} turned ${isChecked ? "ON" : "OFF"}`);
+
+            // Update the "All Lights" button state only for the first three LEDs
+            if (ledId !== 'LED-4') {
+                updateAllLightsButtonState();
+            }
         })
         .catch((error) => {
             console.error("Error updating database:", error);
@@ -32,123 +42,105 @@ window.toggleLED = function (ledId, isChecked) {
 };
 
 window.toggleAllLEDs = function (isChecked) {
-    // Toggle the individual LEDs without feedback for each
-    toggleLED('Led-1', isChecked);
-    toggleLED('Led-2', isChecked);
-    toggleLED('Led-3', isChecked);
+    toggleLED('LED-1', isChecked);
+    toggleLED('LED-2', isChecked);
+    toggleLED('LED-3', isChecked);
     
-    // Provide feedback for all lights
-    if (isChecked) {
-        updateStatus("All lights ON");  // This will say "All lights ON"
-    } else {
-        updateStatus("All lights OFF"); // This will say "All lights OFF"
-    }
+    // Feedback for all lights
+    updateStatus(isChecked ? "All lights ON" : "All lights OFF");
 };
+
+// Update the "All Lights" button state based on individual light statuses
+function updateAllLightsButtonState() {
+    onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
+        const leds = snapshot.val();
+        let allOn = true;
+
+        // Check only the first three LEDs (LED-1, LED-2, LED-3)
+        for (const ledId of ['LED-1', 'LED-2', 'LED-3']) {
+            if (leds[ledId]?.state === 0) { // Check if the LED state is defined
+                allOn = false; // If any of the first three LEDs is off, set allOn to false
+                break; // No need to check further
+            }
+        }
+
+        // Update the "All Lights" button state
+        const allLightsButton = document.getElementById('all-lights');
+        allLightsButton.checked = allOn;
+    });
+}
 
 // Start Listening for Voice Commands
 window.startListening = function () {
-    const recognition = new webkitSpeechRecognition(); // For Chrome compatibility
-    recognition.continuous = false; // Stop after first recognition
-    recognition.interimResults = false; // No interim results
+    const recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = function() {
+        console.log("Speech recognition started.");
+        toggleListeningButton(true);  // Change button color when mic is on
+    };
+
+    recognition.onend = function() {
+        console.log("Speech recognition ended.");
+        toggleListeningButton(false);  // Revert button color when mic is off
+    };
 
     recognition.onresult = function (event) {
-        if (isProcessingCommand) return; // Prevent multiple processing
-        isProcessingCommand = true; // Set flag
+        console.log("Speech recognition result:", event);
+        if (isProcessingCommand) return;
+        isProcessingCommand = true;
 
         const command = event.results[0][0].transcript.toLowerCase();
         console.log("Voice command:", command);
         processCommand(command);
 
-        // Reset flag after processing
         setTimeout(() => {
             isProcessingCommand = false;
-        }, 1000); // Adjust timeout as necessary
+        }, 1000);
+    };
+
+    recognition.onerror = function(event) {
+        console.error("Speech recognition error:", event.error);
     };
 
     recognition.start();
 };
 
-function speak(message) {
-    const utterance = new SpeechSynthesisUtterance(message);
-    window.speechSynthesis.speak(utterance);
-}
-
-function getCurrentTime() {
-    const now = new Date();
-    return now.toLocaleTimeString(); // Format time as HH:MM:SS
-}
-
-function updateStatus(message) {
-    const statusMessage = document.getElementById('status-message');
-    statusMessage.textContent = message;
-    speak(message);
-}
-
-let lastCommand = ""; // To store the last recognized command
-
-function processCommand(command) {
-    if (command === lastCommand) {
-        // If the command is the same as the last one, ignore it
-        return;
-    }
-
-    lastCommand = command; // Update the last command to the current one
-
-    if (command.includes("led 1 on")) {
-        toggleLED('Led-1', true);
-        speak("LED 1 is on");
-    } else if (command.includes("led 1 off")) {
-        toggleLED('Led-1', false);
-        speak("LED 1 is off");
-    } else if (command.includes("led 2 on")) {
-        toggleLED('Led-2', true);
-        speak("LED 2 is on");
-    } else if (command.includes("led 2 off")) {
-        toggleLED('Led-2', false);
-        speak("LED 2 is off");
-    } else if (command.includes("led 3 on")) {
-        toggleLED('Led-3', true);
-        speak("LED 3 is on");
-    } else if (command.includes("led 3 off")) {
-        toggleLED('Led-3', false);
-        speak("LED 3 is off");
-    } else if (command.includes("bell on")) {
-        toggleLED('Led-4', true);
-        speak("Bell is on");
-    } else if (command.includes("bell off")) {
-        toggleLED('Led-4', false);
-        speak("Bell is off");
-    } else if (command.includes("all lights on")) {
-        toggleAllLEDs(true);
-    } else if (command.includes("all lights off")) {
-        toggleAllLEDs(false);
-    } else if (command.includes("what time is it")) {
-        const currentTime = getCurrentTime();
-        updateStatus(`Current time is ${currentTime}`);
-        speak(`Current time is ${currentTime}`); // Speak the current time
-    } else {
-        updateStatus("Command not recognized");
-        console.log("Command not recognized");
-    }
-}
-
 // Listen for changes in Firebase and update the switch states accordingly
-onValue(ref(database, 'Automation'), (snapshot) => {
-    const automations = snapshot.val();
-    console.log("Current automations:", automations);  // Debugging output
-    let allOn = true; // Flag to check if all LEDs 1, 2, and 3 are on
+onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
+    const leds = snapshot.val();
 
-    for (let ledId in automations) {
-        const toggleSwitch = document.querySelector(`input[type="checkbox"][onchange*="${ledId}"]`);
+    for (let ledId in leds) {
+        const toggleSwitch = document.getElementById(ledId);
         if (toggleSwitch) {
-            toggleSwitch.checked = automations[ledId] === 1;
-
-            // Check if any of LEDs 1, 2, or 3 is off
-            if (['Led-1', 'Led-2', 'Led-3'].includes(ledId) && automations[ledId] === 0) {
-                allOn = false; // At least one of these LEDs is off
-            }
+            toggleSwitch.checked = leds[ledId].state === 1;
         }
     }
-    // Update the All lights toggle based on the individual LEDs' status
-    document.getElementById('led1-3').checked = allOn; // Update the "All lights" toggle
+
+    // Update the "All Lights" button state based on the first three LEDs
+    updateAllLightsButtonState();
 });
+
+// Monitor Trash Bin Status
+onValue(ref(database, 'Trash-Bins'), (snapshot) => {
+    const bins = snapshot.val();
+    const binStatusDiv = document.getElementById('trash-bin-status');
+    binStatusDiv.innerHTML = '';  // Clear previous data
+
+    for (const location in bins) {
+        for (const binId in bins[location]) {
+            const bin = bins[location][binId];
+            const binInfo = `
+                <div>
+                    <strong>${location} - ${bin.binColor} Bin</strong>: 
+                    Status: ${bin.status}, Distance: ${bin.distance}cm, 
+                    Last Updated: ${bin.lastUpdated}, Location: ${bin.geoLocation}
+                </div>`;
+            binStatusDiv.innerHTML += binInfo;
+        }
+    }
+});
+
+// Call this function initially to set the button state correctly
+updateAllLightsButtonState();

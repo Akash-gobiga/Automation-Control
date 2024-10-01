@@ -9,46 +9,63 @@
 <body>
     <h1>Automation Control</h1>
 
-    <div class="automation-buttons">
+    <!-- Table Layout -->
+    <div class="table-layout">
+        <!-- Row 1: Light Names -->
+        <div class="table-header">Main Hall</div>
+        <div class="table-header">Corridor</div>
+        <div class="table-header">Gym Area</div>
+        <div class="table-header">Library</div>
+        <div class="table-header">All Lights</div>
+
+        <!-- Row 2: Toggle Switches -->
         <div class="automation-control">
             <label class="switch">
-                <input type="checkbox" onchange="toggleLED('Led-1', this.checked)">
+                <input type="checkbox" id="LED-1" onchange="toggleLED('LED-1', this.checked)">
                 <span class="slider"></span>
             </label>
-            <span>LED 1</span>
         </div>
         <div class="automation-control">
             <label class="switch">
-                <input type="checkbox" onchange="toggleLED('Led-2', this.checked)">
+                <input type="checkbox" id="LED-2" onchange="toggleLED('LED-2', this.checked)">
                 <span class="slider"></span>
             </label>
-            <span>LED 2</span>
         </div>
         <div class="automation-control">
             <label class="switch">
-                <input type="checkbox" onchange="toggleLED('Led-3', this.checked)">
+                <input type="checkbox" id="LED-3" onchange="toggleLED('LED-3', this.checked)">
                 <span class="slider"></span>
             </label>
-            <span>LED 3</span>
         </div>
         <div class="automation-control">
             <label class="switch">
-                <input type="checkbox" onchange="toggleLED('Led-4', this.checked)">
+                <input type="checkbox" id="LED-4" onchange="toggleLED('LED-4', this.checked)">
                 <span class="slider"></span>
             </label>
-            <span>Bell</span>
         </div>
         <div class="automation-control">
             <label class="switch">
-                <input type="checkbox" id="led1-3" onchange="toggleAllLEDs(this.checked)">
+                <input type="checkbox" id="all-lights" onchange="toggleAllLEDs(this.checked)">
                 <span class="slider"></span>
             </label>
-            <span>All lights</span>
         </div>
+
+        <!-- Row 3: Voice Commands -->
+        <div class="table-voice-command">Say: "Turn on LED 1"</div>
+        <div class="table-voice-command">Say: "Turn on LED 2"</div>
+        <div class="table-voice-command">Say: "Turn on LED 3"</div>
+        <div class="table-voice-command">Say: "Turn on Bell"</div>
+        <div class="table-voice-command">Say: "Turn on All Lights"</div>
     </div>
 
-    <button id="start-listening" onclick="startListening()">Start Listening</button>
-    <div id="status-message"></div>
+    <!-- Start Listening Button -->
+    <div style="text-align: center;">
+        <button id="start-listening" onclick="startListening()">Start Listening</button>
+    </div>
+
+    <!-- Trash Bin Monitoring Section -->
+    <h2>Trash Bin Monitoring</h2>
+    <div id="trash-bin-status"></div>
 
     <script src="script.js" type="module"></script>
 </body>
