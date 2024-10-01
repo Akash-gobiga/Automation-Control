@@ -17,40 +17,43 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-let isProcessingCommand = false; // Flag to prevent processing multiple commands
-
-// Function to control LEDs and Bell
+// Function to control LEDs and update location and lastUpdated
 window.toggleLED = function (ledId, isChecked) {
     const ledPath = `Automation/LEDs/${ledId}/state`;
-    const currentTime = new Date().toISOString();
-    
-    set(ref(database, ledPath), isChecked ? 1 : 0)
-        .then(() => {
-            // Update last updated timestamp
-            set(ref(database, `Automation/LEDs/${ledId}/lastUpdated`), currentTime);
-            const ledName = ledId === 'LED-4' ? "Bell" : ledId.replace("-", " ");
-            console.log(`${ledName} turned ${isChecked ? "ON" : "OFF"}`);
+    const currentTime = new Date().toISOString();  // Capture the current time for lastUpdated
+    const locations = {
+        "LED-1": "Main Hall",
+        "LED-2": "Corridor",
+        "LED-3": "Gym Area",
+        "LED-4": "Library"
+    };
 
-            // Update the "All Lights" button state only for the first three LEDs
-            if (ledId !== 'LED-4') {
-                updateAllLightsButtonState();
-            }
-        })
-        .catch((error) => {
-            console.error("Error updating database:", error);
-        });
+    // Set LED state, location, and lastUpdated in the database
+    set(ref(database, `Automation/LEDs/${ledId}`), {
+        state: isChecked ? 1 : 0,
+        lastUpdated: currentTime,
+        location: locations[ledId] // Store the location corresponding to the LED
+    }).then(() => {
+        const ledName = ledId === 'LED-4' ? "Bell" : ledId.replace("-", " ");
+        console.log(`${ledName} turned ${isChecked ? "ON" : "OFF"} at ${currentTime}`);
+
+        // Update the "All Lights" button state only for the first three LEDs
+        if (ledId !== 'LED-4') {
+            updateAllLightsButtonState();
+        }
+    }).catch((error) => {
+        console.error("Error updating database:", error);
+    });
 };
 
+// Function to toggle all LEDs
 window.toggleAllLEDs = function (isChecked) {
     toggleLED('LED-1', isChecked);
     toggleLED('LED-2', isChecked);
     toggleLED('LED-3', isChecked);
-    
-    // Feedback for all lights
-    updateStatus(isChecked ? "All lights ON" : "All lights OFF");
 };
 
-// Update the "All Lights" button state based on individual light statuses
+// Function to update "All Lights" button state based on individual light statuses
 function updateAllLightsButtonState() {
     onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
         const leds = snapshot.val();
@@ -70,44 +73,7 @@ function updateAllLightsButtonState() {
     });
 }
 
-// Start Listening for Voice Commands
-window.startListening = function () {
-    const recognition = new webkitSpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = function() {
-        console.log("Speech recognition started.");
-        toggleListeningButton(true);  // Change button color when mic is on
-    };
-
-    recognition.onend = function() {
-        console.log("Speech recognition ended.");
-        toggleListeningButton(false);  // Revert button color when mic is off
-    };
-
-    recognition.onresult = function (event) {
-        console.log("Speech recognition result:", event);
-        if (isProcessingCommand) return;
-        isProcessingCommand = true;
-
-        const command = event.results[0][0].transcript.toLowerCase();
-        console.log("Voice command:", command);
-        processCommand(command);
-
-        setTimeout(() => {
-            isProcessingCommand = false;
-        }, 1000);
-    };
-
-    recognition.onerror = function(event) {
-        console.error("Speech recognition error:", event.error);
-    };
-
-    recognition.start();
-};
-
-// Listen for changes in Firebase and update the switch states accordingly
+// Listen for changes in Firebase and update the UI with the location and lastUpdated
 onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
     const leds = snapshot.val();
 
@@ -116,31 +82,14 @@ onValue(ref(database, 'Automation/LEDs'), (snapshot) => {
         if (toggleSwitch) {
             toggleSwitch.checked = leds[ledId].state === 1;
         }
+
+        // Display the lastUpdated and location in the console (or the UI)
+        console.log(`${ledId} last updated at: ${leds[ledId].lastUpdated}, Location: ${leds[ledId].location}`);
     }
 
-    // Update the "All Lights" button state based on the first three LEDs
+    // Update the "All Lights" button state
     updateAllLightsButtonState();
 });
 
-// Monitor Trash Bin Status
-onValue(ref(database, 'Trash-Bins'), (snapshot) => {
-    const bins = snapshot.val();
-    const binStatusDiv = document.getElementById('trash-bin-status');
-    binStatusDiv.innerHTML = '';  // Clear previous data
-
-    for (const location in bins) {
-        for (const binId in bins[location]) {
-            const bin = bins[location][binId];
-            const binInfo = `
-                <div>
-                    <strong>${location} - ${bin.binColor} Bin</strong>: 
-                    Status: ${bin.status}, Distance: ${bin.distance}cm, 
-                    Last Updated: ${bin.lastUpdated}, Location: ${bin.geoLocation}
-                </div>`;
-            binStatusDiv.innerHTML += binInfo;
-        }
-    }
-});
-
-// Call this function initially to set the button state correctly
+// Initialize the "All Lights" button state
 updateAllLightsButtonState();
